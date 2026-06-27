@@ -22,11 +22,17 @@ export async function POST(req: NextRequest) {
     const document = db.documents[docIndex];
     
     // Locate the file on disk
-    const fileRelativePath = document.fileUrl.replace(/^\//, ''); // strip leading slash
-    const filePath = path.join(process.cwd(), 'public', fileRelativePath);
+    const filename = path.basename(document.fileUrl);
+    const tmpFilePath = path.join('/tmp', 'nudgedoc', 'uploads', filename);
+    const publicFilePath = path.join(process.cwd(), 'public', 'uploads', filename);
 
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: `File not found on disk at ${filePath}` }, { status: 404 });
+    let filePath = '';
+    if (fs.existsSync(tmpFilePath)) {
+      filePath = tmpFilePath;
+    } else if (fs.existsSync(publicFilePath)) {
+      filePath = publicFilePath;
+    } else {
+      return NextResponse.json({ error: `File not found on disk` }, { status: 404 });
     }
 
     // Determine mimeType

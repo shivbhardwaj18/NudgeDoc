@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 // Define DB paths
-const DATA_DIR = path.join(process.cwd(), 'src', 'data');
+const DATA_DIR = process.env.NODE_ENV === 'production'
+  ? path.join('/tmp', 'nudgedoc', 'data')
+  : path.join(process.cwd(), 'src', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 // Interface definitions
@@ -246,12 +248,33 @@ const seedData: DatabaseSchema = {
 };
 
 // Database helper functions
+export function deleteDbFile(): void {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      fs.unlinkSync(DB_FILE);
+    } catch (e) {
+      console.error('Failed to delete DB file:', e);
+    }
+  }
+}
+
 export function getDb(): DatabaseSchema {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   
   if (!fs.existsSync(DB_FILE)) {
+    const originalDbPath = path.join(process.cwd(), 'src', 'data', 'db.json');
+    if (originalDbPath !== DB_FILE && fs.existsSync(originalDbPath)) {
+      try {
+        const originalContent = fs.readFileSync(originalDbPath, 'utf-8');
+        fs.writeFileSync(DB_FILE, originalContent, 'utf-8');
+        return JSON.parse(originalContent) as DatabaseSchema;
+      } catch (e) {
+        fs.writeFileSync(DB_FILE, JSON.stringify(seedData, null, 2), 'utf-8');
+        return seedData;
+      }
+    }
     fs.writeFileSync(DB_FILE, JSON.stringify(seedData, null, 2), 'utf-8');
     return seedData;
   }

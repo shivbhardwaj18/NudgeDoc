@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create public/uploads directory if not exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    // Create uploads directory if not exists
+    const uploadDir = process.env.NODE_ENV === 'production'
+      ? path.join('/tmp', 'nudgedoc', 'uploads')
+      : path.join(process.cwd(), 'public', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

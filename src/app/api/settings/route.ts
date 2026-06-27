@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSettings, writeSettings } from '@/lib/settings';
-import { getDb, writeDb, DatabaseSchema } from '@/lib/db';
+import { getDb, writeDb, DatabaseSchema, deleteDbFile } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 
@@ -59,16 +59,13 @@ export async function POST(req: NextRequest) {
     // Optional: Reset database to seed data
     let dbReset = false;
     if (resetDatabase) {
-      // Re-read seedData or just re-write db.json with seedData
-      // We can delete the db.json file and call getDb() which re-creates it with seed data!
-      const dbPath = path.join(process.cwd(), 'src', 'data', 'db.json');
-      if (fs.existsSync(dbPath)) {
-        fs.unlinkSync(dbPath);
-      }
+      deleteDbFile();
       getDb(); // Re-seed
       
-      // Clean up public uploads directory if it exists
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      // Clean up uploads directory if it exists
+      const uploadDir = process.env.NODE_ENV === 'production'
+        ? path.join('/tmp', 'nudgedoc', 'uploads')
+        : path.join(process.cwd(), 'public', 'uploads');
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
         for (const file of files) {
